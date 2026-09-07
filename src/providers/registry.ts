@@ -22,6 +22,14 @@ import { cursorFastCapableBases } from "../adapters/cursor/catalog";
 import { COMMAND_CODE_MODEL_REASONING_EFFORTS } from "./command-code-efforts";
 import { isCanonicalOpenRouterTarget } from "./openrouter-routing";
 
+// Fix: Per-process session ID for OpenCode free-tier requests.
+// OpenCode Zen requires an X-Session-ID header for anonymous (keyless) access;
+// without it the gateway returns 400 MissingSessionID.
+function opencodeSessionId(): string {
+  return crypto.randomUUID();
+}
+const OPENCODE_SESSION_ID = opencodeSessionId();
+
 export type ProviderAuthKind = "forward" | "oauth" | "key" | "local";
 export type MetadataModelIdNormalize = "case-insensitive";
 
@@ -2983,6 +2991,7 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
       // through the provider headers API; user headers win case-insensitively at route time.
       "User-Agent": "opencode",
       "x-opencode-client": "desktop",
+      "X-Session-ID": OPENCODE_SESSION_ID,
     },
     modelReasoningEfforts: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekThinkingEffortsFor(id)])),
     modelReasoningEffortMap: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekReasoningMapFor(id)])),

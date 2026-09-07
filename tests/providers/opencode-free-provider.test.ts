@@ -33,8 +33,7 @@ describe("opencode-free provider", () => {
     expect(entry?.staticHeaders?.["Authorization"]).toBeUndefined();
     expect(entry?.staticHeaders?.["User-Agent"]).toBe("opencode");
     expect(entry?.staticHeaders?.["x-opencode-client"]).toBe("desktop");
-    expect(entry?.staticHeaders?.["X-Session-ID"]).toBeDefined();
-    expect(typeof entry?.staticHeaders?.["X-Session-ID"]).toBe("string");
+    expect(entry?.staticHeaders?.["X-Session-ID"]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
   });
 
   test("providerConfigSeed propagates static headers", () => {
@@ -42,8 +41,7 @@ describe("opencode-free provider", () => {
     expect(seed.headers?.["Authorization"]).toBeUndefined();
     expect(seed.headers?.["User-Agent"]).toBe("opencode");
     expect(seed.headers?.["x-opencode-client"]).toBe("desktop");
-    expect(seed.headers?.["X-Session-ID"]).toBeDefined();
-    expect(typeof seed.headers?.["X-Session-ID"]).toBe("string");
+    expect(seed.headers?.["X-Session-ID"]).toBe(entry?.staticHeaders?.["X-Session-ID"]);
     expect(seed.keyOptional).toBe(true);
     expect(seed.liveModels).toBe(true);
   });

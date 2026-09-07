@@ -33,6 +33,8 @@ describe("opencode-free provider", () => {
     expect(entry?.staticHeaders?.["Authorization"]).toBeUndefined();
     expect(entry?.staticHeaders?.["User-Agent"]).toBe("opencode");
     expect(entry?.staticHeaders?.["x-opencode-client"]).toBe("desktop");
+    expect(entry?.staticHeaders?.["X-Session-ID"]).toBeDefined();
+    expect(typeof entry?.staticHeaders?.["X-Session-ID"]).toBe("string");
   });
 
   test("providerConfigSeed propagates static headers", () => {
@@ -40,6 +42,8 @@ describe("opencode-free provider", () => {
     expect(seed.headers?.["Authorization"]).toBeUndefined();
     expect(seed.headers?.["User-Agent"]).toBe("opencode");
     expect(seed.headers?.["x-opencode-client"]).toBe("desktop");
+    expect(seed.headers?.["X-Session-ID"]).toBeDefined();
+    expect(typeof seed.headers?.["X-Session-ID"]).toBe("string");
     expect(seed.keyOptional).toBe(true);
     expect(seed.liveModels).toBe(true);
   });

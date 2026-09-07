@@ -2989,6 +2989,7 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
       // "desktop") in open-sse/executors/opencode.ts, and got there by RETREATING from its
       // own earlier "opencode-cli/1.0.0" pin. An operator can still override either value
       // through the provider headers API; user headers win case-insensitively at route time.
+        "Authorization": "",
       "User-Agent": "opencode",
       "x-opencode-client": "desktop",
       "X-Session-ID": OPENCODE_SESSION_ID,

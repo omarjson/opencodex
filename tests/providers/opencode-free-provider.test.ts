@@ -31,16 +31,19 @@ describe("opencode-free provider", () => {
 
   test("static headers include only the public client markers", () => {
     expect(entry?.staticHeaders?.["Authorization"]).toBeUndefined();
-    expect(entry?.staticHeaders?.["User-Agent"]).toBe("opencode");
-    expect(entry?.staticHeaders?.["x-opencode-client"]).toBe("desktop");
+    expect(entry?.staticHeaders?.["User-Agent"]).toBe("opencode/latest/cli");
+    expect(entry?.staticHeaders?.["x-opencode-client"]).toBe("cli");
     expect(entry?.staticHeaders?.["X-Session-ID"]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    // Same-process stability: reading twice gives the same value
+    const entry2 = getProviderRegistryEntry("opencode-free");
+    expect(entry2?.staticHeaders?.["X-Session-ID"]).toBe(entry?.staticHeaders?.["X-Session-ID"]);
   });
 
   test("providerConfigSeed propagates static headers", () => {
     const seed = providerConfigSeed(entry!);
     expect(seed.headers?.["Authorization"]).toBeUndefined();
     expect(seed.headers?.["User-Agent"]).toBe("opencode");
-    expect(seed.headers?.["x-opencode-client"]).toBe("desktop");
+    expect(seed.headers?.["x-opencode-client"]).toBe("cli");
     expect(seed.headers?.["X-Session-ID"]).toBe(entry?.staticHeaders?.["X-Session-ID"]);
     expect(seed.keyOptional).toBe(true);
     expect(seed.liveModels).toBe(true);
@@ -106,13 +109,13 @@ describe("opencode-free provider", () => {
 
     test("a config saved with no header block gains the full registry set", () => {
       const routed = routedProviderConfig("opencode-free", persisted());
-      expect(routed.headers?.["User-Agent"]).toBe("opencode");
+      expect(routed.headers?.["User-Agent"]).toBe("opencode/latest/cli");
       expect(routed.headers?.["x-opencode-client"]).toBe("desktop");
     });
 
     test("a config saved with only the older marker gains the new one", () => {
       const routed = routedProviderConfig("opencode-free", persisted({ "x-opencode-client": "desktop" }));
-      expect(routed.headers?.["User-Agent"]).toBe("opencode");
+      expect(routed.headers?.["User-Agent"]).toBe("opencode/latest/cli");
       expect(routed.headers?.["x-opencode-client"]).toBe("desktop");
     });
 

@@ -30,13 +30,7 @@ function opencodeSessionId(): string {
 }
 const OPENCODE_SESSION_ID = opencodeSessionId();
 
-// Fix: Per-process session ID for OpenCode free-tier requests.
-// OpenCode Zen requires an X-Session-ID header for anonymous (keyless) access;
-// without it the gateway returns 400 MissingSessionID.
-function opencodeSessionId(): string {
-  return crypto.randomUUID();
-}
-const OPENCODE_SESSION_ID = opencodeSessionId();
+
 
 export type ProviderAuthKind = "forward" | "oauth" | "key" | "local";
 export type MetadataModelIdNormalize = "case-insensitive";
@@ -3007,32 +3001,9 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
       "x-opencode-client": "desktop",
       "X-Session-ID": OPENCODE_SESSION_ID,
     },
-    // Muse Spark Contributor free models serve the Responses API on Zen, not Chat Completions.
-    // Without this wire default they fall through to /chat/completions and the gateway 500s.
-    // Mirrors the opencode-go provider's wire default for the same model family (#2617).
-    modelWireDefaults: {
-      "muse-spark-1.3-contributor-free": "openai-responses",
-      "muse-spark-1.2-contributor-free": "openai-responses",
-    },
-    modelContextWindows: {
-      "muse-spark-1.3-contributor-free": 1_048_576,
-      "muse-spark-1.2-contributor-free": 1_048_576,
-    },
-    modelInputModalities: {
-      "muse-spark-1.3-contributor-free": ["text", "image"],
-      "muse-spark-1.2-contributor-free": ["text", "image"],
-    },
-    modelReasoningEfforts: {
-      ...Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekThinkingEffortsFor(id)])),
-      "muse-spark-1.3-contributor-free": META_MUSE_REASONING_EFFORTS,
-      "muse-spark-1.2-contributor-free": META_MUSE_REASONING_EFFORTS,
-    },
-    modelReasoningEffortMap: {
-      ...Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekReasoningMapFor(id)])),
-      "muse-spark-1.3-contributor-free": META_MUSE_REASONING_EFFORT_MAP,
-      "muse-spark-1.2-contributor-free": META_MUSE_REASONING_EFFORT_MAP,
-    },
-    preserveReasoningContentModels: [...OPENCODE_FREE_DEEPSEEK_MODELS, "muse-spark-1.3-contributor-free", "muse-spark-1.2-contributor-free"],
+    modelReasoningEfforts: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekThinkingEffortsFor(id)])),
+    modelReasoningEffortMap: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekReasoningMapFor(id)])),
+    preserveReasoningContentModels: OPENCODE_FREE_DEEPSEEK_MODELS,
     // The DeepSeek vision preview id is preemptive metadata for when Zen starts
     // serving it (merges into v4-flash later).
     modelContextWindows: {

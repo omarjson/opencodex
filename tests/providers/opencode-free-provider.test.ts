@@ -29,11 +29,6 @@ describe("opencode-free provider", () => {
     expect(entry?.models).toBeUndefined();
   });
 
-  test("muse-spark free models default to the Responses wire", () => {
-    expect(entry?.modelWireDefaults?.["muse-spark-1.3-contributor-free"]).toBe("openai-responses");
-    expect(entry?.modelWireDefaults?.["muse-spark-1.2-contributor-free"]).toBe("openai-responses");
-  });
-
   test("static headers include only the public client markers", () => {
     expect(entry?.staticHeaders?.["Authorization"]).toBeUndefined();
     expect(entry?.staticHeaders?.["User-Agent"]).toBe("opencode");
@@ -75,22 +70,6 @@ describe("opencode-free provider", () => {
     expect(headers["User-Agent"]).toBe("opencode");
     expect(headers["x-opencode-client"]).toBe("desktop");
     expect(req.url).toBe("https://opencode.ai/zen/v1/chat/completions");
-  });
-
-  test("muse-spark free models declare a 1M context window and image support", () => {
-    const provider = providerConfigSeed(entry!);
-    expect(provider.modelContextWindows?.["muse-spark-1.3-contributor-free"]).toBe(1_048_576);
-    expect(provider.modelContextWindows?.["muse-spark-1.2-contributor-free"]).toBe(1_048_576);
-    expect(provider.modelInputModalities?.["muse-spark-1.3-contributor-free"]).toEqual(["text", "image"]);
-    expect(provider.modelInputModalities?.["muse-spark-1.2-contributor-free"]).toEqual(["text", "image"]);
-  });
-
-  test("muse-spark free models expose the Meta reasoning ladder", () => {
-    const provider = providerConfigSeed(entry!);
-    expect(provider.modelReasoningEfforts?.["muse-spark-1.3-contributor-free"]).toEqual([
-      "minimal", "low", "medium", "high", "xhigh",
-    ]);
-    expect(provider.modelReasoningEffortMap?.["muse-spark-1.3-contributor-free"]).toBeDefined();
   });
 
   test("user-supplied apiKey is sent when configured", () => {

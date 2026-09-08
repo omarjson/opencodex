@@ -25,10 +25,7 @@ import { isCanonicalOpenRouterTarget } from "./openrouter-routing";
 // Fix: Per-process session ID for OpenCode free-tier requests.
 // OpenCode Zen requires an X-Session-ID header for anonymous (keyless) access;
 // without it the gateway returns 400 MissingSessionID.
-function opencodeSessionId(): string {
-  return crypto.randomUUID();
-}
-const OPENCODE_SESSION_ID = opencodeSessionId();
+const OPENCODE_SESSION_ID = crypto.randomUUID();
 
 export type ProviderAuthKind = "forward" | "oauth" | "key" | "local";
 export type MetadataModelIdNormalize = "case-insensitive";

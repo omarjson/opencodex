@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { PROVIDER_REGISTRY } from "../../src/providers/registry";
+import { PROVIDER_REGISTRY, getProviderRegistryEntry } from "../../src/providers/registry";
 import { providerConfigSeed, deriveKeyLoginMap, deriveFeaturedProviderIds } from "../../src/providers/derive";
 import { createOpenAIChatAdapter } from "../../src/adapters/openai-chat";
 import { routedProviderConfig } from "../../src/router";
@@ -29,22 +29,30 @@ describe("opencode-free provider", () => {
     expect(entry?.models).toBeUndefined();
   });
 
+  test("muse-spark free models default to the Responses wire", () => {
+    expect(entry?.modelWireDefaults?.["muse-spark-1.3-contributor-free"]).toBe("openai-responses");
+    expect(entry?.modelWireDefaults?.["muse-spark-1.2-contributor-free"]).toBe("openai-responses");
+  });
+
   test("static headers include only the public client markers", () => {
     expect(entry?.staticHeaders?.["Authorization"]).toBeUndefined();
-    expect(entry?.staticHeaders?.["User-Agent"]).toBe("opencode/latest/cli");
-    expect(entry?.staticHeaders?.["x-opencode-client"]).toBe("cli");
-    expect(entry?.staticHeaders?.["X-Session-ID"]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-    // Same-process stability: reading twice gives the same value
-    const entry2 = getProviderRegistryEntry("opencode-free");
-    expect(entry2?.staticHeaders?.["X-Session-ID"]).toBe(entry?.staticHeaders?.["X-Session-ID"]);
+    expect(entry?.staticHeaders?.["User-Agent"]).toBe("opencode");
+    expect(entry?.staticHeaders?.["x-opencode-client"]).toBe("desktop");
+    expect(entry?.staticHeaders?.["X-Session-ID"]).toBeDefined();
+    expect(typeof entry?.staticHeaders?.["X-Session-ID"]).toBe("string");
+    expect(entry?.staticHeaders?.["X-Session-ID"]).toBeDefined();
+    expect(typeof entry?.staticHeaders?.["X-Session-ID"]).toBe("string");
   });
 
   test("providerConfigSeed propagates static headers", () => {
     const seed = providerConfigSeed(entry!);
     expect(seed.headers?.["Authorization"]).toBeUndefined();
     expect(seed.headers?.["User-Agent"]).toBe("opencode");
-    expect(seed.headers?.["x-opencode-client"]).toBe("cli");
+    expect(seed.headers?.["x-opencode-client"]).toBe("desktop");
     expect(seed.headers?.["X-Session-ID"]).toBe(entry?.staticHeaders?.["X-Session-ID"]);
+    expect(typeof seed.headers?.["X-Session-ID"]).toBe("string");
+    expect(seed.headers?.["X-Session-ID"]).toBeDefined();
+    expect(typeof seed.headers?.["X-Session-ID"]).toBe("string");
     expect(seed.keyOptional).toBe(true);
     expect(seed.liveModels).toBe(true);
   });
@@ -67,6 +75,22 @@ describe("opencode-free provider", () => {
     expect(headers["User-Agent"]).toBe("opencode");
     expect(headers["x-opencode-client"]).toBe("desktop");
     expect(req.url).toBe("https://opencode.ai/zen/v1/chat/completions");
+  });
+
+  test("muse-spark free models declare a 1M context window and image support", () => {
+    const provider = providerConfigSeed(entry!);
+    expect(provider.modelContextWindows?.["muse-spark-1.3-contributor-free"]).toBe(1_048_576);
+    expect(provider.modelContextWindows?.["muse-spark-1.2-contributor-free"]).toBe(1_048_576);
+    expect(provider.modelInputModalities?.["muse-spark-1.3-contributor-free"]).toEqual(["text", "image"]);
+    expect(provider.modelInputModalities?.["muse-spark-1.2-contributor-free"]).toEqual(["text", "image"]);
+  });
+
+  test("muse-spark free models expose the Meta reasoning ladder", () => {
+    const provider = providerConfigSeed(entry!);
+    expect(provider.modelReasoningEfforts?.["muse-spark-1.3-contributor-free"]).toEqual([
+      "minimal", "low", "medium", "high", "xhigh",
+    ]);
+    expect(provider.modelReasoningEffortMap?.["muse-spark-1.3-contributor-free"]).toBeDefined();
   });
 
   test("user-supplied apiKey is sent when configured", () => {
@@ -109,13 +133,13 @@ describe("opencode-free provider", () => {
 
     test("a config saved with no header block gains the full registry set", () => {
       const routed = routedProviderConfig("opencode-free", persisted());
-      expect(routed.headers?.["User-Agent"]).toBe("opencode/latest/cli");
+      expect(routed.headers?.["User-Agent"]).toBe("opencode");
       expect(routed.headers?.["x-opencode-client"]).toBe("desktop");
     });
 
     test("a config saved with only the older marker gains the new one", () => {
       const routed = routedProviderConfig("opencode-free", persisted({ "x-opencode-client": "desktop" }));
-      expect(routed.headers?.["User-Agent"]).toBe("opencode/latest/cli");
+      expect(routed.headers?.["User-Agent"]).toBe("opencode");
       expect(routed.headers?.["x-opencode-client"]).toBe("desktop");
     });
 

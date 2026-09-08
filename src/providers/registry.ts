@@ -25,7 +25,18 @@ import { isCanonicalOpenRouterTarget } from "./openrouter-routing";
 // Fix: Per-process session ID for OpenCode free-tier requests.
 // OpenCode Zen requires an X-Session-ID header for anonymous (keyless) access;
 // without it the gateway returns 400 MissingSessionID.
-const OPENCODE_SESSION_ID = crypto.randomUUID();
+function opencodeSessionId(): string {
+  return crypto.randomUUID();
+}
+const OPENCODE_SESSION_ID = opencodeSessionId();
+
+// Fix: Per-process session ID for OpenCode free-tier requests.
+// OpenCode Zen requires an X-Session-ID header for anonymous (keyless) access;
+// without it the gateway returns 400 MissingSessionID.
+function opencodeSessionId(): string {
+  return crypto.randomUUID();
+}
+const OPENCODE_SESSION_ID = opencodeSessionId();
 
 export type ProviderAuthKind = "forward" | "oauth" | "key" | "local";
 export type MetadataModelIdNormalize = "case-insensitive";
@@ -2977,17 +2988,51 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
     note: "No key needed — public desktop tier. OpenCode currently advertises about 200 Big Pickle/free-model requests per 5 hours. The same Zen gateway can also short-window rate-limit free models at roughly 15-20 requests/minute, and may return generic 429s without Retry-After (opencodex synthesizes backoff only when that header is omitted). Free models are discovered live from Zen. Data use: per OpenCode's Zen docs (https://opencode.ai/docs/zen/), prompts sent to free models may be retained and used for training/improvement — do not send confidential material through this provider.",
     dashboardUrl: "https://opencode.ai",
     staticHeaders: {
-        // Match the official OpenCode CLI headers.
-        // cli client gets priority over desktop on Zen gateway.
-        // x-opencode-session is the canonical session affinity header.
-        "User-Agent": "opencode/latest/cli",
-        "x-opencode-client": "cli",
-        "x-opencode-session": OPENCODE_SESSION_ID,
-        "X-Session-ID": OPENCODE_SESSION_ID,
-      },
-    modelReasoningEfforts: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekThinkingEffortsFor(id)])),
-    modelReasoningEffortMap: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekReasoningMapFor(id)])),
-    preserveReasoningContentModels: OPENCODE_FREE_DEEPSEEK_MODELS,
+      // Zen answers a bare runtime User-Agent (Bun/x.y.z) more aggressively than a client
+      // that identifies itself, which is what the 429 in #2067 traced to. The value is
+      // deliberately unversioned: a pinned "opencode-cli/<version>" is a claim about an
+      // install we do not have and goes stale on the vendor's schedule, not ours.
+      // Corroboration, not authority: OmniRoute — an independent open-source broker against
+      // the same Zen upstream — defaults to exactly this pair (userAgent "opencode", client
+      // "desktop") in open-sse/executors/opencode.ts, and got there by RETREATING from its
+      // own earlier "opencode-cli/1.0.0" pin. An operator can still override either value
+      // through the provider headers API; user headers win case-insensitively at route time.
+      //
+      // The X-Session-ID header is required for anonymous (keyless) access: without it the
+      // gateway returns 400 MissingSessionID ("OpenCode's free tier can only be used in
+      // OpenCode"). One UUID is generated per process. This is additive only — it does not
+      // change the client identity declared above. Evidence: community reports confirm the
+      // header is accepted from third-party clients (see PR #3954 discussion).
+      "User-Agent": "opencode",
+      "x-opencode-client": "desktop",
+      "X-Session-ID": OPENCODE_SESSION_ID,
+    },
+    // Muse Spark Contributor free models serve the Responses API on Zen, not Chat Completions.
+    // Without this wire default they fall through to /chat/completions and the gateway 500s.
+    // Mirrors the opencode-go provider's wire default for the same model family (#2617).
+    modelWireDefaults: {
+      "muse-spark-1.3-contributor-free": "openai-responses",
+      "muse-spark-1.2-contributor-free": "openai-responses",
+    },
+    modelContextWindows: {
+      "muse-spark-1.3-contributor-free": 1_048_576,
+      "muse-spark-1.2-contributor-free": 1_048_576,
+    },
+    modelInputModalities: {
+      "muse-spark-1.3-contributor-free": ["text", "image"],
+      "muse-spark-1.2-contributor-free": ["text", "image"],
+    },
+    modelReasoningEfforts: {
+      ...Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekThinkingEffortsFor(id)])),
+      "muse-spark-1.3-contributor-free": META_MUSE_REASONING_EFFORTS,
+      "muse-spark-1.2-contributor-free": META_MUSE_REASONING_EFFORTS,
+    },
+    modelReasoningEffortMap: {
+      ...Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekReasoningMapFor(id)])),
+      "muse-spark-1.3-contributor-free": META_MUSE_REASONING_EFFORT_MAP,
+      "muse-spark-1.2-contributor-free": META_MUSE_REASONING_EFFORT_MAP,
+    },
+    preserveReasoningContentModels: [...OPENCODE_FREE_DEEPSEEK_MODELS, "muse-spark-1.3-contributor-free", "muse-spark-1.2-contributor-free"],
     // The DeepSeek vision preview id is preemptive metadata for when Zen starts
     // serving it (merges into v4-flash later).
     modelContextWindows: {

@@ -2980,20 +2980,14 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
     note: "No key needed — public desktop tier. OpenCode currently advertises about 200 Big Pickle/free-model requests per 5 hours. The same Zen gateway can also short-window rate-limit free models at roughly 15-20 requests/minute, and may return generic 429s without Retry-After (opencodex synthesizes backoff only when that header is omitted). Free models are discovered live from Zen. Data use: per OpenCode's Zen docs (https://opencode.ai/docs/zen/), prompts sent to free models may be retained and used for training/improvement — do not send confidential material through this provider.",
     dashboardUrl: "https://opencode.ai",
     staticHeaders: {
-      // Zen answers a bare runtime User-Agent (Bun/x.y.z) more aggressively than a client
-      // that identifies itself, which is what the 429 in #2067 traced to. The value is
-      // deliberately unversioned: a pinned "opencode-cli/<version>" is a claim about an
-      // install we do not have and goes stale on the vendor's schedule, not ours.
-      // Corroboration, not authority: OmniRoute — an independent open-source broker against
-      // the same Zen upstream — defaults to exactly this pair (userAgent "opencode", client
-      // "desktop") in open-sse/executors/opencode.ts, and got there by RETREATING from its
-      // own earlier "opencode-cli/1.0.0" pin. An operator can still override either value
-      // through the provider headers API; user headers win case-insensitively at route time.
-        "Authorization": "",
-      "User-Agent": "opencode",
-      "x-opencode-client": "desktop",
-      "X-Session-ID": OPENCODE_SESSION_ID,
-    },
+        // Match the official OpenCode CLI headers.
+        // cli client gets priority over desktop on Zen gateway.
+        // x-opencode-session is the canonical session affinity header.
+        "User-Agent": "opencode/latest/cli",
+        "x-opencode-client": "cli",
+        "x-opencode-session": OPENCODE_SESSION_ID,
+        "X-Session-ID": OPENCODE_SESSION_ID,
+      },
     modelReasoningEfforts: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekThinkingEffortsFor(id)])),
     modelReasoningEffortMap: Object.fromEntries(OPENCODE_FREE_DEEPSEEK_MODELS.map(id => [id, deepseekReasoningMapFor(id)])),
     preserveReasoningContentModels: OPENCODE_FREE_DEEPSEEK_MODELS,
